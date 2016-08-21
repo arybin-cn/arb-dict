@@ -10,13 +10,7 @@ define_method :fmt_json do |main_hash|
 end
 
 define_method :fmt_csv do |main_hash|
-  tmp_arr = [main_hash[:entity], main_hash[:phonetic_us], main_hash[:phonetic_uk]]
-  main_hash[:translation].each do |translation|
-    tmp_arr<<translation
-  end
-  main_hash[:sentences].each do |sentence|
-    tmp_arr<<sentence[:entity]<<sentence[:translation]
-  end
+  tmp_arr = [main_hash[:entity], main_hash[:phonetic_us], main_hash[:phonetic_uk],main_hash[:translation],main_hash[:sentences]]
   puts tmp_arr.to_csv
 end
 
@@ -52,9 +46,9 @@ if opts
     tmp_hash = JSON.parse(open("http://dict.youdao.com/jsonresult?q=#{entity}&type=1").read)
     main_hash = {
         entity: entity,
-        phonetic_us: (tmp_hash['sm'] rescue 'No US Phonetic'),
-        phonetic_uk: (tmp_hash['uksm'] rescue 'No UK Phonetic'),
-        translation: (tmp_hash['basic'] rescue 'No Translation')
+        phonetic_us: (tmp_hash['sm'] || 'No US Phonetic'),
+        phonetic_uk: (tmp_hash['uksm'] || 'No UK Phonetic'),
+        translation: (tmp_hash['basic'] || 'No Translation')
     }
     main_hash[:sentences]=[]
     if opts.sentence?
