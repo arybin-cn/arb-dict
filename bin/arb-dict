@@ -48,7 +48,7 @@ if opts
     puts 'Missing target, please specify a word or phrase!'
     exit
   end
-  if opts[:inputfile] && File.exists?(opts[:inputfile])
+  if opts[:inputfile]
     if File.exists?(opts[:inputfile])
     opts.args<<File.readlines(opts[:inputfile]).map(&:chomp)
     opts.args.flatten!
