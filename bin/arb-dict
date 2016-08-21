@@ -35,6 +35,7 @@ begin
   opts = Slop.parse do |o|
     o.string *%w{-f --format}, 'available choices: json,csv,raw(default)', default: 'raw'
     o.string *%w{-s --separator},'separator used in array#join in csv format(default: NEWLINE)',default: "\n"
+    o.string *%w{-i --inputfile},'sepecify data input file in which words or phrases should be separated by line'
   end
 rescue Slop::MissingArgument
   puts 'Missing arguments!'
@@ -42,10 +43,20 @@ rescue Slop::UnknownOption
   puts 'Unknown options!'
 end
 
-
 if opts
-  entity = opts.args.first
-  if entity
+  unless opts.args.size>0 || opts[:inputfile]
+    puts 'Missing target, please specify a word or phrase!'
+    exit
+  end
+  if opts[:inputfile] && File.exists?(opts[:inputfile])
+    if File.exists?(opts[:inputfile])
+    opts.args<<File.readlines(opts[:inputfile]).map(&:chomp)
+    opts.args.flatten!
+    else
+      puts "Can not find inputfile #{opts[:inputfile]}"
+    end
+  end
+  opts.args.each do |entity|
     tmp_hash = JSON.parse(open("http://dict.youdao.com/jsonresult?q=#{URI.encode(entity)}&type=1").read)
     main_hash = { entity: entity }
     if entity.ascii_only?
@@ -56,8 +67,5 @@ if opts
     end
     main_hash[:translation]=strict_value(tmp_hash['basic'],'No Translation')
     send "fmt_#{opts[:format]}", main_hash,opts[:separator]
-  else
-    puts 'Missing target, please specify a word or phrase!'
-    exit
   end
 end
