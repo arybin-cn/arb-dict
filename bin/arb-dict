@@ -1,38 +1,34 @@
 #!/usr/bin/env ruby
+require 'uri'
 require 'csv'
 require 'slop'
 require 'json'
 require 'open-uri'
 
-
-define_method :fmt_json do |main_hash|
+define_method :fmt_json do |main_hash,*args|
   puts main_hash.to_json
 end
 
-define_method :fmt_csv do |main_hash|
-  tmp_arr = [main_hash[:entity], main_hash[:phonetic_us], main_hash[:phonetic_uk],main_hash[:translation],main_hash[:sentences]]
-  puts tmp_arr.to_csv
+define_method :fmt_csv do |main_hash,separator|
+  puts main_hash.values.map{|tmp| next tmp.join(separator) if tmp.is_a? Array;tmp}.to_csv
 end
 
-define_method :fmt_raw do |main_hash|
+define_method :fmt_raw do |main_hash,*args|
   puts main_hash[:entity], ''
-  puts "US[#{main_hash[:phonetic_us]}]" if main_hash[:phonetic_us].size>0
-  puts "UK[#{main_hash[:phonetic_uk]}]" if main_hash[:phonetic_uk].size>0
-  puts '' if (main_hash[:phonetic_us].size>0 || main_hash[:phonetic_uk].size>0)
-  puts main_hash[:translation]
-  if main_hash[:sentences].size>0
-    puts ''
-    main_hash[:sentences].each do |sentence|
-      puts sentence[:entity], sentence[:translation], ''
-    end
+  if main_hash[:entity].ascii_only?
+    puts "US[#{main_hash[:phonetic_us]}]"
+    puts "UK[#{main_hash[:phonetic_uk]}]"
+  else
+    puts "Phonetic[#{main_hash[:phonetic]}]"
   end
+  puts '' 
+  puts main_hash[:translation]
 end
-
 
 begin
   opts = Slop.parse do |o|
-    o.bool *%w{-s --sentence}, 'show sentences'
     o.string *%w{-f --format}, 'available choices: json,csv,raw(default)', default: 'raw'
+    o.string *%w{-s --separator},'separator used in array#join in csv format(default: NEWLINE)',default: "\n"
   end
 rescue Slop::MissingArgument
   puts 'Missing arguments!'
@@ -43,28 +39,18 @@ end
 if opts
   entity = opts.args.first
   if entity
-    tmp_hash = JSON.parse(open("http://dict.youdao.com/jsonresult?q=#{entity}&type=1").read)
-    main_hash = {
-        entity: entity,
-        phonetic_us: (tmp_hash['sm'] || 'No US Phonetic'),
-        phonetic_uk: (tmp_hash['uksm'] || 'No UK Phonetic'),
-        translation: (tmp_hash['basic'] || 'No Translation')
-    }
-    main_hash[:sentences]=[]
-    if opts.sentence?
-      JSON.parse(open("http://dict.youdao.com/jsonapi?q=#{entity}").read)['blng_sents_part']['sentence-pair'].each do |inner_hash|
-        main_hash[:sentences] << {
-            entity: inner_hash['sentence'],
-            translation: inner_hash['sentence-translation']
-        }
-      end
+    tmp_hash = JSON.parse(open("http://dict.youdao.com/jsonresult?q=#{URI.encode(entity)}&type=1").read)
+    main_hash = { entity: entity }
+    if entity.ascii_only?
+      main_hash[:phonetic_us]=(tmp_hash['sm'] || 'No US Phonetic')
+      main_hash[:phonetic_uk]=(tmp_hash['uksm'] || 'No UK Phonetic')
+    else
+      main_hash[:phonetic]=(tmp_hash['sm'] || 'No Phonetic')
     end
-    send "fmt_#{opts[:format]}", main_hash
+    main_hash[:translation]=(tmp_hash['basic'] || 'No Translation')
+    send "fmt_#{opts[:format]}", main_hash,opts[:separator]
   else
     puts 'Missing target, please specify a word or phrase!'
     exit
   end
 end
-
-
-
