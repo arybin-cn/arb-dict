@@ -52,6 +52,7 @@ if opts
   end
   opts.args.each do |entity|
     main_hash=Arb::Dict.query(entity)
+    main_hash=main_hash.map{|tmp| [tmp[0],tmp[1] || 'NOT FOUND']}.to_h
     send "fmt_#{opts[:format]}", main_hash,opts[:separator]
   end
 end

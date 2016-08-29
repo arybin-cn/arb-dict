@@ -9,12 +9,12 @@ module Arb
       tmp_hash = JSON.parse(open("http://dict.youdao.com/jsonresult?q=#{URI.encode(entity)}&type=1").read)
       main_hash = { entity: entity }
       if entity.ascii_only?
-        main_hash[:phonetic_us]=strict_value(tmp_hash['sm'],'No US Phonetic')
-        main_hash[:phonetic_uk]=strict_value(tmp_hash['uksm'],'No UK Phonetic')
+        main_hash[:phonetic_us]=strict_value(tmp_hash['sm'],nil)
+        main_hash[:phonetic_uk]=strict_value(tmp_hash['uksm'],nil)
       else
-        main_hash[:phonetic]=strict_value(tmp_hash['sm'],'No Phonetic')
+        main_hash[:phonetic]=strict_value(tmp_hash['sm'],nil)
       end
-      main_hash[:translation]=strict_value(tmp_hash['basic'],'No Translation')
+      main_hash[:translation]=strict_value(tmp_hash['basic'],nil)
       main_hash
     end
     private
